@@ -1,0 +1,516 @@
+---
+title: "Student Retention"
+author: "Ignacio Molina"
+date: "2025-04-24"
+output: pdf_document
+subtitle: \textit{Exploring the factors that influence student retention in a community college system}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r prep, include=FALSE}
+library(tidyverse)
+library(caret)
+library(sassy)
+library(knitr)
+library(kableExtra)
+library(pandoc)
+library("pROC")
+##########################################################
+# Import file to be used for the retention model
+##########################################################
+
+Retention <- read.csv("~/Hardvard X/Capstone/Retention/Retention.csv")
+
+Retrain <- Retention %>% filter(AcadYr > 2019 & AcadYr <2025)
+```
+
+### Introduction
+
+Student Retention is an important area of research in higher education with significant implications in major areas of an institution. Research in student retention attempts to understand the factors that influence the decision of a student to persist or depart from their academic goals.
+
+There is a distinction between student retention and student persistence. While retention focuses on the actions and strategies employed by institutions to keep students enrolled, persistence emphasizes the efforts and mindset of students to persevere despite expected and unexpected challenges. This study focuses on student retention.
+
+Much of the literature examines factors influencing retention from individual motivations, socio-economic factors, changes in policy, among others. Vincent Tinto’s Retention theory is among one of the most recognized models for student retention and it is based on academic and social integration as a pillar for student success. Sense of belonging, academic preparedness and institutional support are key to student achievement. Although some of these theories accurately explain the behavioral aspect of retention, at times they involve instruments difficult to access such as student surveying, structural latent statistical models and other techniques that make it hard for institutions to track students at risk.
+
+Moreover, student retention has a direct influence on the economic activity of our society. It is well documented that in times of economic prosperity, people tend to pause their educational venues and focus their attention on profiting from a labor market upswing. By contrast, in times of recession people facing employment difficulties might decide to upscale their education thus making it easier to be retained.
+
+According to the National Student Clearinghouse, overall student retention in the United States is around 55% (62.5% for full time, and 44% for part time students). The organization also estimates that 70.4% of full time students persist, while the same measure is 50.8% for part timers. The overall persistence rate in the US is around 62%.
+
+As reported by the Institutional Effectiveness, retention, for the Colleges to be studied, has fluctuated between 60.1% and 62.17% in recent years (2020 and 2024). This is somewhat consistent with the national average according to National Student Clearinghouse estimates.
+
+The objective of this exercise is to discover relationships between student retention and factors that are easier to measure using standard institutional information. A second goal is to design a fully functional machine learning early warning system able to track and identify students for intervention purposes. At the same time, this system would be able to inform stakeholders about factors that influence retention behavior.
+
+Recently, Institutional Effectiveness at the colleges of study revisited the concept of retention with a new methodology that includes:
+
+-   Students new to the Community Colleges.
+
+-   Students who are credential-seeking.
+
+-   Non-dual enrollment students (who have not yet graduated High School).
+
+-   The methodology filters for students with valid academic enrollment statuses, ensuring only those actively pursuing coursework are included in the cohort.
+
+-   Students who have met certain academic requirements (e.g., completion of English and Math requirements).
+
+This marks a roadmap for defining retention in such a way that is homogeneous for every college in the district which includes 10 colleges in a metropolitan area in the Southwest United States. With this, researchers are able to develop forecasting models that allows for a better understanding of retention behavior in a way that is applicable to every college. The next segment describes the structure of the retention model(s) that are currently being developed.
+
+### The Machine Learning Process
+
+Machine learning is a concept of artificial intelligence that enables computers to learn patterns from dynamic data sets with or without supervision of a programmer or a data scientist. In the context of retention, the outcome that is being modeled is a “Yes” (1) if the person is retained or “No” (0) if the student drops out of college. This is commonly referred to as a binary variable since retention has only two outcomes. Once the outcome to be modeled is defined, modelers attempt to correlate independent factors to the retention measure. This takes several iterations. In the case of the retention model, there were four possible versions, all with similar characteristics. This phase is commonly referred to as the “training” phase. Once defined and trained, the model is put in “testing” or production phase, that is, the model is applied with new data independent from the training phase to identify individuals that are potentially at risk of dropping out or, in contrast, staying in college. The model, as in this case, is placed in a visualization platform to summarize findings and easy identification of individuals at risk. Once new data is available, the process is repeated and new model parameters are calculated for accuracy and factor significance.
+
+### Methodology
+
+The main data source for this project was the institutional database, a district database which houses student, program, and course data. Basic information was gathered, such as student gender, ethnicity, age, attempted hours, GPA, award type, and program CIP codes (Classification of Instructional Programs) among other variables. The source for retention was provided in the form of a dashboard by the institutional research. Both data sets were merged and loaded into R statistical software. Data was gathered from 2020 to 2025. Available data for academic years 2020 to 2024 were used in the training phase whereas academic year 2025 was used for the testing phase.
+
+The approach researchers followed was a logistic regression algorithm. Logistic regression is a supervised machine learning algorithm that achieves a binary classification by predicting the probability of a variable or event (in this case “Retained” or “Not Retained”). The model delivers a variable that is limited to two possible outcomes.
+
+The results from the model were evaluated for statistical significance in the form of a Wald Chi-square Statistic, accuracy by calling the Receiver Operating Characteristic (ROC) curve and Area Under the Curve (AUC) and impact in the form of Odds Ratio Estimates using R as the statistical software.
+
+Chi-Square statistic is used to assess the statistical significance of a particular variable. In simple words, Chi-Square attempts to quantify if a factor has an influence on retention or not; typically the threshold for significance in Chi-Square statistics bounce around 2, higher than that means the variable has a statistical significance in the explaining retention. ROC is a statistic that allows to set cut offs for retained and dropped students. Recall that a logistic regression model will produce a probability for each student in the data set, therefore, a probability cut off is necessary to claim when the student is retained or not based on the given probability. ROC suggests a cut off probability for this purpose. Area Under the Curve or AUC is a statistical calculation that evaluates how well our model classifies positive or negative outcomes, that is, how well retention is predicted. AUC ranges from 0 to 1 being 0.5 considered a prediction not better than random. Anything above AUC=0.5 stands for a more precise statistical model with a fair amount of accuracy. The closer to 1 in AUC the more accurate our model is supposed to be. The model prediction comes in the form of a logarithmic odd for each student which is subsequently transformed into probability. The following formula describe how probabilities are derived from the model:
+
+$$
+p = \frac{1}{1+e^-(int + \beta_{1}*x_{1} +...+ \beta_{k}*x_{k}) }
+$$
+
+Where p is the estimated probability e is the exponential function of the estimated outcome derived from the logistic regression.
+
+### Results Training Phase
+
+Out of the 4 models tested the one in the formula was chosen:
+
+$$
+Retention_{yes/no} = \alpha + (\beta_{1}*Attempted Hours) + (\beta_{2}*GPA) + (\beta_{3}*Age) + (\beta_{4}*Pell) + (\beta_{5}*Non-Credit) 
+$$
+
+$$
++ (\beta_{6}*Female) + (\beta_{7}*Certificate) + (\beta_{8}*Associate)
+$$
+
+Where:
+
+-   $\beta$~1..8~ is the estimated coefficients for each of the variables in the model.
+
+-   **Attempted hours** refers to the average attempted credit hours the student took during the first academic year.
+
+-   **GPA** refers to the Grade Point Average the student obtained during the first year in school.
+
+-   **Age** measures how old the student is at the moment of taking classes.
+
+-   **Pell** If the student is eligible for financial aid in the form of a Pell grant. This variable was converted into a binary variable where the outcome is one if the student received the aid or zero if the student did not receive aid.
+
+-   **Non-Credit (non)** refers to students that declared they were pursuing a non credit degree. The variable was converted into a binary variable.
+
+-   **Female** if the student reports to have that gender. This is extracted from a gender variable and is coded as binary as well.
+
+-   **Certificate (CCL)** when the student declares the intention of pursuing a certificate of completion, certificates usually are short term typically with no less than one year in duration. The variable is coded as 1 if they pursue a certificate or zero if not the case.
+
+-   **Associates (AAS)** when the student is pursuing an associate degree, the variable is formatted as a binary variable.
+
+```{r}
+#Code 1 Converting Our Dependent Variable into Numeric Value
+Retrain$rsem <- ifelse(Retrain$NxtSem == "Y",1,0)
+Retrain$pel <- ifelse(Retrain$Pell == "1", 1,0)
+```
+
+```{r, include=FALSE}
+
+Athrs <-Retrain %>% group_by(rsem) %>% proc_means(var = AvAthr, class = rsem) %>% mutate(Retention = ifelse(CLASS ==1, "Retained","Not Retained")) %>% mutate(Variable = "Attempted Horus")
+
+Age <- Retrain %>% group_by(rsem) %>% proc_means(var = Age, class = rsem) %>% 
+  mutate(Retention = ifelse(CLASS ==1, "Retained","Not Retained")) %>%
+  mutate(Variable = "Age")
+
+Gpa <- Retrain %>% group_by(rsem) %>% proc_means(var = gpa, class = rsem) %>% 
+  mutate(Retention = ifelse(CLASS ==1, "Retained","Not Retained")) %>%
+  mutate(Variable = "GPA")
+
+#append or stack all descriptive statistics
+Descriptive <- rbind(Athrs, Age, Gpa)
+
+#
+Descriptive <- subset(Descriptive, select = -c( CLASS, VAR)) %>% 
+  mutate(across(c('MEAN', 'STD', 'MIN'), round,2))  #this help us round to a particular decimal place 
+
+#Remove Missing Observations
+Descriptive <- Descriptive[!is.na(Descriptive$Retention),]
+#Reorder Variables 
+Descriptive <- Descriptive %>% select(Variable, Retention, N, MEAN, STD, MIN, MAX) 
+  
+
+```
+
+Table 1 shows descriptive statistics comparison of the independent variables that are classified as continuous variables (Attempted Hours, GPA and Age) for students who were retained and not retained. Several significant differences exist between dropped students and retained in these three variables. The mean for attempted hours in retain students is close to 17 whereas not retained students is lower with around nine hours. Similarly, retain students show a mean GPA of 2.98 while non-retained students average 1.95. Finally, students that are being retained show a difference of three years younger if compared to the non retained category.
+
+```{r, echo=FALSE}
+Descriptive %>% knitr::kable(
+  format = "latex",
+  align = "l",
+  booktabs = TRUE,
+  longtable = FALSE,
+  linesep = "",
+  format.args = list(big.mark = ","),
+  caption = "General Descriptive Statistics (Continous Variables)"
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position"
+  )
+```
+
+Figures 1 to 5 explain the importance of the binary variables. For example, there is a 45% probability that a student drops when the individual is not Pell eligible. On the other hand, there is a 76% chance that the student that is Pell eligible will be retained. The probability that a student pursues a non credit program and drops is close to 32%, whereas the chances that a non credit student is retained is close to 60%. Students that drop and are females represent close to 36% whereas students who are females and stay are close to 65%. Students pursuing a certificate and drop are close to 35% whereas those that stay represent close to 63%. Finally, Of the total that decided to pursue an associates degree, 71% are retained for the following semester.
+
+```{r, include=FALSE}
+nopel <- Retrain %>% filter(pel==0)%>%proc_freq( tables = rsem)
+pel <- Retrain %>% filter(pel==1) %>%proc_freq(tables =  rsem)
+pells <- rbind(nopel,pel) 
+
+as.numeric(pells$PCT)
+
+```
+
+```{r, include=FALSE}
+a <- pells[1:4, "PCT"]
+
+```
+
+```{r, echo=FALSE, fig.height=4, fig.cap= "Pell Retention", fig.pos="H"}
+
+barplot(a, names.arg = c("No Pell-Dropped", "No Pell-Retained", "Pell-Dropped", "Pell-Retained"),
+        cex.name = .8,
+        border = 'white',
+        main = "Retention Patterns for Pell Elegibility",
+        ylab = "Percent of Students"
+        ) 
+
+```
+
+```{r, include = FALSE}
+nonon <- Retrain %>% filter(non==0)  %>%proc_freq(tables = rsem)
+non <- Retrain %>% filter(non==1) %>% proc_freq(tables = rsem)
+nons <- rbind(nonon, non)
+```
+
+```{r, include=FALSE}
+b <- nons[1:4, "PCT"]
+```
+
+```{r, echo=FALSE, fig.height=4, fig.cap= "Non Credit Program Retention", fig.pos="H"}
+barplot(b, names.arg = c("Cred-Drop", "Cred-Retained", "No Cred-Drop", "No Cred-Retained"),
+        cex.names = 0.8,
+        border = "white",
+        main = "Retention Paterns for Non Credited Programs",
+        ylab = "Percent of Students") 
+
+```
+
+```{r, include=FALSE}
+Femno <- Retrain %>% filter(Female==0)%>%proc_freq(tables = rsem)
+Fem <- Retrain %>% filter(Female==1) %>% proc_freq(tables = rsem)
+Females <- rbind(Femno, Fem)
+```
+
+```{r, include=FALSE}
+c <- Females[1:4, "PCT"]
+```
+
+```{r, echo=FALSE,fig.height=4, fig.cap= "Gender Retention", fig.pos="H"}
+barplot(c, names.arg = c("No Female-Drop", "No Fem-Retained", "Female-Drop", "Female-Retained"),
+        cex.names = 0.8,
+        border = "white",
+        main = "Retention Patterns for Gender")
+```
+
+```{r, include=FALSE}
+cclno <- Retrain %>% filter(ccl == 0) %>%proc_freq(tables = rsem)
+cc <- Retrain %>% filter(ccl == 1) %>% proc_freq(tables = rsem)
+ccl <- rbind(cclno,cc)
+
+```
+
+```{r, include=FALSE}
+d <- ccl[1:4, "PCT"]
+```
+
+```{r, echo=FALSE, fig.height=4, fig.cap= "Certificate Retention", fig.pos="H"}
+barplot(d, names.arg = c("No Cert Drop", "No Cert Retained", "Cert Drop", "Cert Retained"),
+        cex.names = 0.8,
+        border = "white",
+        main = "Retention Patterns for Certificates",
+        ylab = "Percent of Students")
+```
+
+```{r, include=FALSE}
+Ascono <- Retrain %>% filter(aas==0) %>% proc_freq(tables = rsem)
+Asoc <- Retrain %>% filter(aas==1) %>% proc_freq(tables =  rsem)
+aas <- rbind(Ascono,Asoc)
+```
+
+```{r, include=FALSE}
+e <- aas[1:4, "PCT"]
+```
+
+```{r, echo=FALSE, fig.height=4, fig.cap= "Pell Retention", fig.pos="H"}
+barplot(e, names.arg = c("No Asoc-Drop", "No Asoc-Ret", "Asoc Drop", "Asoc-Ret"),
+        cex.names = 0.8,
+        border = "white",
+        main = "Retention Patterns for Associates",
+        ylab = "Percent of Students")
+```
+
+```{r}
+# Code 2: Training Model Code
+Ret_Model <- glm(rsem ~ AvAthr + Age + gpa + pel + non + Female + ccl + aas,
+                 data = Retrain,
+                 family = "binomial",
+                 na.action = na.exclude)
+
+```
+
+```{r, include=FALSE}
+#obtain Coefficients
+Coef <- as.data.frame(Ret_Model$coefficients)
+
+
+#z_values_df <- data.frame(Predictor = names(summary(Ret_Model)$coefficients[, "z value"]),
+                           #Z_value = summary(Ret_Model)$coefficients[, "z value"])
+
+# Extract the summary of the model
+summary_model <- summary(Ret_Model)  
+# Extract the coefficients table
+coefficients_table <- coef(summary_model)
+# Get the variable names (excluding the intercept if present)
+variable_names <-rownames(coefficients_table)
+# Extract the coefficient values
+coefficients <-coefficients_table[,"Estimate"]
+# Extract the z-values (or t-values) - the column name might vary
+z_values <- coefficients_table[, grep("z value|t value", colnames(coefficients_table))]
+# Create the dataframe
+results_df <- data.frame(
+  Variable = variable_names,
+  Coefficient = coefficients,
+  Chi_Square = z_values
+)
+
+results_df <- results_df %>% mutate(Point_Estimate = exp(Coefficient)) %>%
+  select(Variable, Coefficient, Point_Estimate, Chi_Square)
+
+results_df <- results_df %>% mutate(across(c("Coefficient", "Point_Estimate", "Chi_Square"), round,2))
+
+
+```
+
+Model results show that all variables have a strong significance on retention except for the variable representing females. Based on the results the estimated AUC is 0.83 which signals the model has a high degree of reliability. All metrics for model fitness (Likelihood ratio, score and Chi-Square test) became highly significant.
+
+Out of the eight variables considered in the model Average Attempted Hours, GPA and Pell Eligibility are the most important factors in predicting student retention. For example, a student that is Pell eligible is 1.83 times more likely to be retained (Chi-Square = 39). Students with high GPA (close to 3.0) are 1.72 times more prone to stay than those students with a lower GPA (Chi-Square = 106). Students with high Average Attempted Hours (example: 17 hours) are 14% more likely to stay than those with low attempted hours (Chi-Square = 115). Age shows a negative relationship with respect to retention. Older students are more likely to drop than younger students by about 1% for every one unit increase in age (Chi-Square = -8.9). Recall that the mean age for students that leave college is around 26, whereas for retained students it is closer to 23 years of age. Students that are enrolled in non credit programs are also negatively impacted. It has been estimated that these students are 8.8% more likely to drop than those who do not (Chi-Square = -5.8). Students in Certificate and Associate Degree programs are 1.24 and 1.45 times more likely to stay, respectively, with respect to those students that are not in those types of programs (Chi-Square = 9.6, 24.9 respectively). Table 2 shows the odds ratio point estimate.
+
+```{r, echo=FALSE}
+results_df %>% knitr::kable(
+  format = "latex",
+  align = "l",
+  booktabs = TRUE,
+  longtable = FALSE,
+  linesep = "",
+  format.args = list(big.mark = ","),
+  caption = "Retention Model Results"
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position"
+  )
+```
+
+```{r, echo=FALSE, fig.height=4, fig.cap= "ROC Curve", fig.pos="H"}
+
+predicted_probs <- predict(Ret_Model)
+
+roc(Retrain$rsem, predicted_probs, plot=TRUE, legacy.axes=TRUE,
+    percent = TRUE, xlab = "Percent False Positives",
+    ylab = "Percent True Positives", col = "blue", lwd=2,
+    print.auc=TRUE)
+
+```
+
+```{r}
+
+# Code 3: Identify threshold maximizing sensitivity and specificity
+roc_curve <- roc(Retrain$rsem, predicted_probs)
+
+# Code 4: Generating a Probability Threshold
+coords <- coords(roc_curve, "best", best.method = "closest.topleft")
+
+
+```
+
+Finally, the estimate for ROC, the probability by which the outcome, Retained / No retained is determined (threshold), is 0.486, which seems to be slightly lower than the usual cutoff of 0.5. There are four categories for the purpose classifying our predicted values:
+
+1.  If the student drops and the predicted value indicates so, then the student will be classified as “Dropped”.
+
+2.  If the student is retained and the model predicts the individual will be retained, the student is classified as a “Retained”.
+
+3.  If the student is predicted to be retained but actually drops, then the student is classified as a “False Positive” or “Type I” error.
+
+4.  If the student is predicted to drop, but is instead retained, the student is classified as a “False Negative” or “Type II” error.
+
+The model can be evaluated by comparing the four categories to the actual retention values. Based on these results it was found that close to 27% were classified as Not Retained students, 50% were Retained students, 14% False Positives (predicted retained but dropped), and 8% were considered as False Negatives (predicted dropped but retained). Combining Dropped and False Negatives will give an estimated 24.29% for Dropped Students. Similarly, if combined Retained students with False Positives would yield 64.7% which is close to the actual retention rates (39.08% Dropped, 60.92% Retained)
+
+```{r, include=FALSE}
+predicted_class <- ifelse(predicted_probs >= coords$threshold,1,0)
+predicted_class <- as.data.frame(predicted_class)
+                                 
+Retrain <- merge(Retrain, predicted_class$predicted_class, by= 'row.names', all = TRUE ) 
+
+```
+
+```{r, echo=FALSE, fig.height=4, fig.cap= "Redefining Decision Logic", fig.pos="H"}
+Retrain <- Retrain %>% mutate(Desision =
+  ifelse(rsem == 1 & y == 1, "Retained",
+  ifelse(rsem == 1 & y == 0, "False Positive",
+  ifelse(rsem == 0 & y == 0, "Drop",
+  ifelse(rsem == 0 & y == 1, "False Negative", "na")))))
+```
+
+```{r, include=FALSE}
+Decision <-proc_freq(data = Retrain, tables = Desision)
+Decision <- subset(Decision, select= -c(VAR))%>%
+  mutate(across(c("N", "CNT", "PCT"), round,2)) 
+Decision <-  rename(Decision,
+         Retention_Categories = "CAT",
+         Observations = "N",
+         Expected_Count = "CNT",
+         Percent = "PCT")
+```
+
+```{r echo=FALSE}
+Decision %>% knitr::kable(
+  format = "latex",
+  align = "l",
+  booktabs = TRUE,
+  longtable = FALSE,
+  linesep = "",
+  format.args = list(big.mark = ","),
+  caption = "Distribution of Predicted Retention Values"
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position"
+  )
+
+```
+
+### Test Phase
+
+For the testing phase, the retention cohort for the academic year 2025 was used. Here the coefficients calculated in the training phase ($\beta$k) are extrapolated using the same factors as in the training phase (Attempted Hours, GPA, Pell, etc…) to predict 2025 retention. Similar to the training phase, the cutoff was determined to be at 0.48, however, individuals which the probabilities fall between the usual cutoff (0.5) and the ROC estimate will be consider False Positives, and on the other hand, there was a set of criteria that indicated a False Negative:
+
+-   If the student’s probability is less than 0.5.
+-   If the student is expected to not have financial aid (Pell).
+-   If the student is pursuing a non-degree program.
+-   If the student is not seeking a Certificate or an Associates Degree.
+
+Results from the test phase indicate a total of 28,669 students. According to the results, the model predicts 7,570 students at risk of dropping. This represents 26% of all students. Students that were considered a False Negative sum 3,646 representing 12.72%, while 290 or 1.01% were calculated to be False Positives. Students that are predicted to be Retained represent 59.87% or 17,163 students. If Retained and False Positives are combined, this group represents close to 60.88%, whereas Dropped students and False Negatives represent 39.12%. This is consistent with real historical retention rates. Table 4 summarizes this findings.
+
+```{r}
+#Code 5: Model Implementation in Testing phase
+Tse_coef <- as.data.frame(t(Coef))
+Tse_coef <- rename(Tse_coef,
+                   Intercept = "(Intercept)")
+
+Retest <- Retention %>% filter( AcadYr == 2025) 
+Retest$rsem <- ifelse(Retest$NxtSem == "Y",1,0) 
+Retest$pel <- ifelse(Retest$Pell == "1", 1,0)
+  
+Retest <- Retest %>% mutate(
+  log_odds = Tse_coef$Intercept + 
+    (Tse_coef$AvAthr*AvAthr) +
+    (Tse_coef$Age*Age) +
+    (Tse_coef$gpa*gpa) + 
+    (Tse_coef$pel*pel)+
+    (Tse_coef$non*non)+
+    (Tse_coef$Female*Female)+
+    (Tse_coef$ccl*ccl)+
+    (Tse_coef$aas*aas)
+) %>%
+  mutate(Probability = 1 / (1+ exp(-log_odds)))
+```
+
+```{r}
+#Code 6: Reclassifying Probabilities in the Testing Phase.
+Retest <- Retest %>% mutate(Decision =
+  ifelse(Probability > coords$threshold & Probability < 0.5, "False Positive",
+  ifelse(Probability >0.5, "Retained",   
+  ifelse(Probability < coords$threshold & pel == 0 & non == 1 & ccl == 0 & aas == 0, "False Negative",
+  ifelse(Probability < coords$threshold, "Drop","na"  )))))
+  
+```
+
+```{r, include =FALSE}
+Decision25 <-proc_freq(data = Retest, tables = Decision)
+Decision25 <- subset(Decision25, select= -c(VAR))%>%
+  mutate(across(c("N", "CNT", "PCT"), round,2))
+```
+
+```{r, include=FALSE}
+Decision25 <-  rename(Decision25,
+         Retention_Categories = "CAT",
+         Observations = "N",
+         Expected_Count = "CNT",
+         Percent = "PCT")
+```
+
+```{r echo=FALSE}
+Decision25 %>% knitr::kable(
+  format = "latex",
+  align = "l",
+  booktabs = TRUE,
+  longtable = FALSE,
+  linesep = "",
+  format.args = list(big.mark = ","),
+  caption = "Distribution of Predicted Retention Values in Testing Phase"
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position"
+  )
+```
+
+### Discussion
+
+Retention is an essential metric to any higher education institution. This measure has implications not only to the educational side of a college or university, but also financial implications; if a student is not retained the opportunity cost of not having an additional student next semester grows, hence, lowering revenues. Student retention also has a social impact, the more students retained leads to a more prepared society, therefore, a better workforce and potentially higher salaries and job opportunities.
+
+In the institutional context, this study attempts to be prescriptive, that is, find important factors that affect student retention so that policies can be established aimed at elevating the quality of services at the institution. For example, facilitating the delivery of Pell grants to students or removing barriers to enroll in a Certificate or Associate's program, just to mention a few.
+
+This research also attempts to be predictive in nature. Generating a statistical model like this allows administrators to point at students at risk by identifying students that have low retention probabilities and make institutional interventions to help individuals to finish the program(s) they are enrolled in.
+
+The retention model demonstrates that all the variables included are statistically significant except for Females. In particular there are three variables that are dominant, Average Attempted Hours, GPA and Pell Eligibility. Those three variables by far exceed the statistical significance (Table 3, Wald Chi Square). Associate Degree is another variable that reveals extraordinary significance making students in that path more prone to stay than other counterparts. Females, however, obtained the lowest degree of significance (Chi Square was below the threshold of 2.0). Certificates, Students in Non-Credit Programs, and Student Age came lower in the Chi-Square statistic but this does not mean they are not important. Additionally, age has an inverse relationship with retention, the older the student is, the more prone to drop out. In the training phase it was determined that the average age for a student leaving the college bounced between 26.6 and 26.8. Furthermore, in the model, students enrolled in non-credited show a similar behavior making them more prone to dropping out if compared to credited programs such as Associate’s or Certificate programs.
+
+In general terms, actual student retention is divided into a 40% Dropout Rate and 60% Student Retention. Overall, the training model forecasted close to 27% students at risk of dropping out from the college, and close to 8% students that are predicted to leave but actually stayed (false negatives); if both of these classifications are combined there will be a prediction close to 35% in students at risk of dropping out. On the other hand, the model predicted 50% Student Retention and 14.34% False Positives, that is, students that are predicted to stay but leave, yielding a 64% predicted retention. During the testing phase results were somewhat similar with 26.4% dropout rate, 12.7% false negative, 1.0% false positives and 59.8% retention.
+
+False positives and negatives are important in the sense that they allow administrators to focus on students that are at high risk (drop outs). For example, administrators can flag students in the false negative classification as individuals of low risk. On the contrary, students in the false positives classification can be followed closely as they are predicted to stay but end up leaving the college. Another way to think about Type I and Type II errors is the fact that these students are at the margin of staying or leaving. Administrators have to keep in mind that there are external factors the model does not include and are hard to track (<Example:if> a student has a family issues that impedes him/her to continue studying). Also statistical problems such as multicollinearity (high correlation among independent variables) and overfitting (too many variables) might influence the outcomes of the model’s prediction.
+
+The Student Retention model can be placed in a business intelligence platform such as Tableau or Power Bi. Administrators can have easy access to student lists so they can observe which students are retained and which are at risk. Another practical tool that can be created is a probability calculator in which administrators can input values for the independent variables (Attempted Hours, GPA, Pell, etc…) and have an output easy to interpret such as “Student at Risk”, “Student is Safe”, “Student Might Drop” or “Student Might Retain”.
+
+Finally, it is important to point out that the factors that were included in this model do not necessarily imply causality. The variables in the model attempt to explain retention behavior by seeking patterns in the data that resemble retention using a given statistical algorithm. For example, having low attempted hours does not necessarily cause the student to drop. In this case, a particular student might have a rigid schedule with work and family obligations that might place education in a lesser order of importance. Administrators might be tempted in this case to raise the academic load making it even more difficult for the student to stay in his/her education path. In such case, what administrators can do is to gather qualitative information about the student to see how the individual can be supported. A common practice derived from statistical models like this is to create a series of surveys or focus groups with students at high risk derived from the predictive model to find the root cause of why students consider dropping out; based on a sudent follow up, administrators can design policies aimed to tackle the problems that the student faces.
+
+### References 
+
+<https://moderncampus.com/blog/persistence-vs-retention.html>
+
+<https://nscresearchcenter.org/persistence-retention/>
+
+<https://documentation.sas.com/doc/en/pgmsascdc/v_062/statug/statug_logistic_syntax01.htm>
+
+<https://stats.oarc.ucla.edu/r/dae/logit-regression/>
+
+<https://www.geeksforgeeks.org/greek-letters-in-latex/>
+
+<https://procs.r-sassy.org/articles/procs-freq.html>
+
+<https://www.geeksforgeeks.org/deciding-threshold-for-glm-logistic-regression-model-in-r/>
+
+<https://nscresearchcenter.org/persistence-retention/>
+
+<https://eric.ed.gov/?id=EJ1188373>
+
+<https://www.researchgate.net/profile/Larry-Ebbers-2/publication/248937948_Rethinking_student_retention_in_community_colleges/links/5494a2560cf2ec1337581a66/Rethinking-student-retention-in-community-colleges.pdf>
+
+<https://files.eric.ed.gov/fulltext/ED645912.pdf>
+
+
